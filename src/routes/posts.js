@@ -13,46 +13,31 @@ router.get("/", async (req, res) => {
 
   const filter = q ? { $text: { $search: q } } : {};
   const total = await Post.countDocuments(filter);
-
   const posts = await Post.find(filter)
     .populate("author", "username avatarUrl")
-    .populate({
-      path: "comments",
-      populate: { path: "author", select: "username avatarUrl" },
-    })
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(limit);
-
   res.json({ data: posts, total, page, pages: Math.ceil(total / limit) });
 });
-// Create post
+
+// Create
 router.post("/", auth, async (req, res) => {
   const post = await Post.create({ ...req.body, author: req.user._id });
-
-  // Populate author and initialize comments as empty array
-  const populated = await Post.findById(post._id)
-    .populate("author", "username avatarUrl")
-    .populate({
-      path: "comments",
-      populate: { path: "author", select: "username avatarUrl" },
-    });
-
+  const populated = await post.populate("author", "username avatarUrl");
   res.status(201).json(populated);
 });
-// Read single post with comments
+
+// Read
 router.get("/:id", async (req, res) => {
-  const post = await Post.findById(req.params.id)
-    .populate("author", "username avatarUrl")
-    .populate({
-      path: "comments",
-      populate: { path: "author", select: "username avatarUrl" },
-    });
-
+  const post = await Post.findById(req.params.id).populate(
+    "author",
+    "username avatarUrl"
+  );
   if (!post) return res.status(404).json({ message: "Not found" });
-
   res.json(post);
 });
+
 // Update (only author)
 router.put("/:id", auth, async (req, res) => {
   const post = await Post.findById(req.params.id);
@@ -105,7 +90,6 @@ router.post("/:id/like", auth, async (req, res) => {
       });
     }
   }
-  ("");
   await post.save();
   const populated = await Post.findById(post._id).populate(
     "author",
