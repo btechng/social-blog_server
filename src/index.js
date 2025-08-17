@@ -104,8 +104,16 @@ app.get("/posts/:id", async (req, res) => {
 
 app.get("/social-post/:id", async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id);
+    const post = await Post.findById(req.params.id)
+      .populate({
+        path: "comments",
+        populate: { path: "author", select: "username avatarUrl" },
+        options: { sort: { createdAt: 1 } }, // oldest first
+      })
+      .populate("author", "username avatarUrl"); // post author
+
     if (!post) return res.status(404).send("Post not found");
+
     res.send(generatePostHTML(post, "social-post"));
   } catch (err) {
     console.error(err);
