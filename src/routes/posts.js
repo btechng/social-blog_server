@@ -13,11 +13,17 @@ router.get("/", async (req, res) => {
 
   const filter = q ? { $text: { $search: q } } : {};
   const total = await Post.countDocuments(filter);
+
   const posts = await Post.find(filter)
-    .populate("author", "username avatarUrl")
+    .populate("author", "username avatarUrl") // populate post author
+    .populate({
+      path: "comments", // populate comments array
+      populate: { path: "author", select: "username avatarUrl" }, // populate comment author
+    })
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(limit);
+
   res.json({ data: posts, total, page, pages: Math.ceil(total / limit) });
 });
 
